@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão de Frota - GOS</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #000;
+      color: #FFD700;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #111;
+      padding: 10px 20px;
+      border-bottom: 2px solid #FFD700;
+    }
+    header img {
+      height: 50px;
+    }
+    header h1 {
+      font-size: 24px;
+      margin: 0;
+      text-align: center;
+      flex-grow: 1;
+      color: #FFD700;
+    }
+    nav {
+      background-color: #222;
+      display: flex;
+      justify-content: center;
+      padding: 10px;
+    }
+    nav a {
+      color: #FFD700;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    .content {
+      padding: 20px;
+    }
+    .hidden {
+      display: none;
+    }
+    .login-form {
+      max-width: 300px;
+      margin: 100px auto;
+      background: #111;
+      padding: 20px;
+      border: 1px solid #FFD700;
+      border-radius: 10px;
+    }
+    .login-form input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+    }
+    .login-form button {
+      background-color: #FFD700;
+      border: none;
+      padding: 10px;
+      width: 100%;
+      cursor: pointer;
+    }
+    .card {
+      background: #222;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border-left: 5px solid #FFD700;
+    }
+    .form-control {
+      background: #111;
+      border: 1px solid #FFD700;
+      color: #FFD700;
+      padding: 8px;
+      margin: 5px 0;
+      width: 100%;
+    }
+    .btn {
+      background-color: #FFD700;
+      color: #000;
+      border: none;
+      padding: 10px;
+      margin-top: 10px;
+      width: 100%;
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #FFD700;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+    .delete-btn {
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div id="loginSection" class="login-form hidden">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Usuário">
+    <input type="password" id="password" placeholder="Senha">
+    <button onclick="login()">Entrar</button>
+    <hr>
+    <h3>Novo Usuário</h3>
+    <input type="text" id="newUser" placeholder="Novo usuário">
+    <input type="password" id="newPass" placeholder="Nova senha">
+    <button onclick="registerUser()">Cadastrar</button>
+</div>
+<script>
+    // Verifica se já está logado
+    if (localStorage.getItem('loggedUser')) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        renderViaturas();
+        renderOcorrencias();
+        atualizarDashboard();
+    } else {
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('mainApp').classList.add('hidden');
+    }
+
+    // Modifica a função login para manter logado
+    function login() {
+        const user = document.getElementById('username').value;
+        const pass = document.getElementById('password').value;
+        const storedPass = localStorage.getItem('user_' + user);
+        if (storedPass && storedPass === pass) {
+            localStorage.setItem('loggedUser', user);
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            renderViaturas();
+            renderOcorrencias();
+            atualizarDashboard();
+        } else {
+            alert('Usuário ou senha incorretos');
+        }
+    }
+</script>
+
+  <div id="mainApp" class="hidden">
+    <header>
+    <img src="./imagens/imagens/gos.png" alt="logo gos" style="width: 120px; height: 120px;">
+      <h1>Gerência de Operações de Segurança</h1>
+      <img src="./imagens/imagens/pppe.png" alt="Polícia Penal" style="width: 100px; height: 110px">;
+    </header>
+
+    <nav>
+      <a href="#" onclick="showPage('dashboard')">Dashboard</a>
+      <a href="#" onclick="showPage('ficha')">Ficha de Viatura</a>
+      <a href="#" onclick="showPage('ocorrencias')">Ocorrências</a>
+      <a href="#" onclick="showPage('relatorios')">Relatórios</a>
+    </nav>
+
+    <div class="content">
+      <div id="dashboard">
+        <div class="card">
+          <h3>Disponibilidade da Frota</h3>
+          <p id="qtdDisponivel">Carregando...</p>
+        </div>
+        <div class="card">
+          <h3>Crédito de Combustível</h3>
+          <div id="creditosDashboard"></div>
+        </div>
+        <div class="card">
+          <h3>Próximas Revisões</h3>
+          <ul id="revisoesDashboard"></ul>
+        </div>
+      </div>
+
+      <div id="ficha" class="hidden">
+        <h2>Ficha de Viatura</h2>
+        <input class="form-control" type="text" id="placa" placeholder="Placa da viatura">
+        <input class="form-control" type="text" id="modelo" placeholder="Modelo">
+        <input class="form-control" type="text" id="combustivel" placeholder="Crédito de Combustível">
+        <input class="form-control" type="date" id="revisao" placeholder="Próxima Revisão">
+        <button class="btn" onclick="salvarViatura()">Salvar</button>
+        <table id="tabelaViaturas">
+          <thead>
+            <tr>
+              <th>Placa</th>
+              <th>Modelo</th>
+              <th>Crédito</th>
+              <th>Revisão</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="ocorrencias" class="hidden">
+        <h2>Ocorrências</h2>
+        <input class="form-control" type="date" id="dataOc" placeholder="Data">
+        <input class="form-control" type="text" id="viaturaOc" placeholder="Viatura">
+        <input class="form-control" type="text" id="descOc" placeholder="Descrição">
+        <button class="btn" onclick="salvarOcorrencia()">Registrar</button>
+        <table id="tabelaOcorrencias">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Viatura</th>
+              <th>Descrição</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="relatorios" class="hidden">
+        <h2>Relatórios</h2>
+        <p>Use CTRL + P para imprimir a tela atual como relatório.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const viaturas = JSON.parse(localStorage.getItem('viaturas') || '[]');
+    const ocorrencias = JSON.parse(localStorage.getItem('ocorrencias') || '[]');
+
+    function salvarViatura() {
+      const placa = document.getElementById('placa').value;
+      const modelo = document.getElementById('modelo').value;
+      const combustivel = document.getElementById('combustivel').value;
+      const revisao = document.getElementById('revisao').value;
+      if (placa && modelo && combustivel && revisao) {
+        viaturas.push({ placa, modelo, combustivel, revisao });
+        localStorage.setItem('viaturas', JSON.stringify(viaturas));
+        renderViaturas();
+        atualizarDashboard();
+        document.getElementById('placa').value = '';
+        document.getElementById('modelo').value = '';
+        document.getElementById('combustivel').value = '';
+        document.getElementById('revisao').value = '';
+      } else {
+        alert('Preencha todos os campos.');
+      }
+    }
+
+    function excluirViatura(index) {
+      viaturas.splice(index, 1);
+      localStorage.setItem('viaturas', JSON.stringify(viaturas));
+      renderViaturas();
+      atualizarDashboard();
+    }
+
+    function renderViaturas() {
+      const tbody = document.querySelector('#tabelaViaturas tbody');
+      tbody.innerHTML = '';
+      viaturas.forEach((v, i) => {
+        tbody.innerHTML += `<tr><td>${v.placa}</td><td>${v.modelo}</td><td>${v.combustivel}</td><td>${v.revisao}</td><td><button class="delete-btn" onclick="excluirViatura(${i})">Excluir</button></td></tr>`;
+      });
+    }
+
+    function salvarOcorrencia() {
+      const data = document.getElementById('dataOc').value;
+      const viatura = document.getElementById('viaturaOc').value;
+      const descricao = document.getElementById('descOc').value;
+      if (data && viatura && descricao) {
+        ocorrencias.push({ data, viatura, descricao });
+        localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
+        renderOcorrencias();
+        document.getElementById('dataOc').value = '';
+        document.getElementById('viaturaOc').value = '';
+        document.getElementById('descOc').value = '';
+      } else {
+        alert('Preencha todos os campos.');
+      }
+    }
+
+    function excluirOcorrencia(index) {
+      ocorrencias.splice(index, 1);
+      localStorage.setItem('ocorrencias', JSON.stringify(ocorrencias));
+      renderOcorrencias();
+    }
+
+    function renderOcorrencias() {
+      const tbody = document.querySelector('#tabelaOcorrencias tbody');
+      tbody.innerHTML = '';
+      ocorrencias.forEach((o, i) => {
+        tbody.innerHTML += `<tr><td>${o.data}</td><td>${o.viatura}</td><td>${o.descricao}</td><td><button class="delete-btn" onclick="excluirOcorrencia(${i})">Excluir</button></td></tr>`;
+      });
+    }
+
+    function atualizarDashboard() {
+      document.getElementById('qtdDisponivel').textContent = `${viaturas.length} viaturas cadastradas.`;
+      const creditos = document.getElementById('creditosDashboard');
+      creditos.innerHTML = '';
+      viaturas.forEach(v => {
+        creditos.innerHTML += `<p>${v.placa}: R$ ${v.combustivel}</p>`;
+      });
+      const revisoes = document.getElementById('revisoesDashboard');
+      revisoes.innerHTML = '';
+      viaturas.forEach(v => {
+        revisoes.innerHTML += `<li>${v.placa} - ${v.revisao}</li>`;
+      });
+    }
+
+    function registerUser() {
+      const newUser = document.getElementById('newUser').value;
+      const newPass = document.getElementById('newPass').value;
+      if (newUser && newPass) {
+        localStorage.setItem('user_' + newUser, newPass);
+        alert('Usuário cadastrado com sucesso!');
+        document.getElementById('newUser').value = '';
+        document.getElementById('newPass').value = '';
+      } else {
+        alert('Preencha os campos de novo usuário e senha.');
+      }
+    }
+
+    function login() {
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      const storedPass = localStorage.getItem('user_' + user);
+      if (storedPass && storedPass === pass) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('mainApp').classList.remove('hidden');
+        renderViaturas();
+        renderOcorrencias();
+        atualizarDashboard();
+      } else {
+        alert('Usuário ou senha incorretos');
+      }
+    }
+
+    function showPage(pageId) {
+      const pages = ['dashboard', 'ficha', 'ocorrencias', 'relatorios'];
+      pages.forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      document.getElementById(pageId).classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
